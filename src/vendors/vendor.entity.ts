@@ -3,10 +3,8 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
-  ManyToOne,
   CreateDateColumn,
 } from 'typeorm';
-import { User } from '../users/user.entity';
 import { Service } from '../services/service.entity';
 
 @Entity('vendors')
@@ -14,26 +12,23 @@ export class Vendor {
   @PrimaryGeneratedColumn()
   id: number;
 
+  // ✅ Vendor ka naam
   @Column()
   name: string;
 
-  @Column()
+  // ✅ Vendor email
+  @Column({ nullable: true, unique: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   phone: string;
 
-  @Column()
-  address: string;
-
-  @ManyToOne(() => User, { eager: true })
-  user: User;
+  @Column({ nullable: true })
+  description: string;
 
   // ✅ ONE vendor → MANY services
-  @OneToMany(() => Service, (service) => service.vendor)
+  @OneToMany(() => Service, service => service.vendor)
   services: Service[];
-
-  
 
   @CreateDateColumn()
   createdAt: Date;

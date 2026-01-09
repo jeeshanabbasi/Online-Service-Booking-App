@@ -33,7 +33,7 @@ export class ServicesService {
     }
 
     const service = this.serviceRepo.create({
-      name: data.name,
+      title: data.title,          // ✅ FIXED (name ❌ → title ✅)
       price: data.price,
       duration: data.duration,
       description: data.description,
@@ -50,7 +50,7 @@ export class ServicesService {
       relations: ['category', 'vendor'],
       select: {
         id: true,
-        name: true,
+        title: true,
         price: true,
         duration: true,
         description: true,
@@ -70,21 +70,21 @@ export class ServicesService {
   async findOne(id: number) {
     const service = await this.serviceRepo.findOne({
       where: { id },
-      // relations: ['category', 'vendor'],
+      relations: ['category', 'vendor'],
       select: {
         id: true,
-        name: true,
+        title: true,
         price: true,
         duration: true,
         description: true,
-        // category: {
-        //   id: true,
-        //   name: true,
-        // },
-        // vendor: {
-        //   id: true,
-        //   name: true,
-        // },
+        category: {
+          id: true,
+          name: true,
+        },
+        vendor: {
+          id: true,
+          name: true,
+        },
       },
     });
 
@@ -102,7 +102,7 @@ export class ServicesService {
       relations: ['category', 'vendor'],
       select: {
         id: true,
-        name: true,
+        title: true,
         price: true,
         duration: true,
         description: true,
