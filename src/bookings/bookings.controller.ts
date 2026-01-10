@@ -16,7 +16,7 @@ import { BookingStatus } from './booking.entity';
 
 @Controller('bookings')
 export class BookingsController {
-  constructor(private bookingsService: BookingsService) {}
+  constructor(private readonly bookingsService: BookingsService) {}
 
   // ================= USER =================
 
@@ -30,7 +30,7 @@ export class BookingsController {
     });
   }
 
-  // ✅ MY BOOKINGS
+  // ✅ MY BOOKINGS (USER)
   @UseGuards(JwtAuthGuard)
   @Get('my')
   getMyBookings(@Req() req) {
@@ -47,14 +47,19 @@ export class BookingsController {
     return this.bookingsService.findByVendorUserId(req.user.userId);
   }
 
-  // ✅ UPDATE STATUS
+  // ✅ UPDATE BOOKING STATUS (VENDOR ONLY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('VENDOR')
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: BookingStatus,
+    @Req() req,
   ) {
-    return this.bookingsService.updateStatus(+id, status);
+    return this.bookingsService.updateStatus(
+      +id,
+      status,
+      req.user.userId, // ⭐ vendorUserId (FINAL FIX)
+    );
   }
 }

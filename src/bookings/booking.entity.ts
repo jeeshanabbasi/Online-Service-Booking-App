@@ -12,7 +12,7 @@ import { Vendor } from '../vendors/vendor.entity';
 export enum BookingStatus {
   PENDING = 'PENDING',
   CONFIRMED = 'CONFIRMED',
-  COMPLETED = 'COMPLETED', // ✅ THIS LINE FIXES ERROR
+  COMPLETED = 'COMPLETED',
   CANCELLED = 'CANCELLED',
 }
 
@@ -21,7 +21,7 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'datetime' })
   bookingDate: Date;
 
   @Column({
@@ -31,13 +31,25 @@ export class Booking {
   })
   status: BookingStatus;
 
-  @ManyToOne(() => User)
+  // 🔐 USER who booked
+  @ManyToOne(() => User, (user) => user.bookings, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   user: User;
 
-  @ManyToOne(() => Service)
+  // 🛠 SERVICE booked
+  @ManyToOne(() => Service, (service) => service.bookings, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   service: Service;
 
-  @ManyToOne(() => Vendor)
+  // 🏪 VENDOR who will fulfill booking
+  @ManyToOne(() => Vendor, (vendor) => vendor.bookings, {
+    nullable: false,
+    onDelete: 'CASCADE',
+  })
   vendor: Vendor;
 
   @CreateDateColumn()

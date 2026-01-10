@@ -1,3 +1,4 @@
+// src/users/users.controller.ts
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from './users.service';
@@ -10,7 +11,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Req() req) {
-    return req.user;
+    return {
+      userId: req.user.userId,
+      email: req.user.email,
+      role: req.user.role,
+    };
   }
 
   // 🔐 All users list (admin later)
@@ -19,4 +24,10 @@ export class UsersController {
   getAllUsers() {
     return this.usersService.findAll();
   }
+  @UseGuards(JwtAuthGuard)
+@Get('me')
+getMe(@Req() req) {
+  return req.user;
+}
+
 }

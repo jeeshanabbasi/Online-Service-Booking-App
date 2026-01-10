@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking, BookingStatus } from './booking.entity';
@@ -10,44 +15,40 @@ import { Vendor } from '../vendors/vendor.entity';
 export class BookingsService {
   constructor(
     @InjectRepository(Booking)
-    private bookingRepo: Repository<Booking>,
+    private readonly bookingRepo: Repository<Booking>,
 
     @InjectRepository(User)
-    private userRepo: Repository<User>,
+    private readonly userRepo: Repository<User>,
 
     @InjectRepository(Service)
-    private serviceRepo: Repository<Service>,
+    private readonly serviceRepo: Repository<Service>,
 
     @InjectRepository(Vendor)
-    private vendorRepo: Repository<Vendor>,
+    private readonly vendorRepo: Repository<Vendor>,
   ) {}
 
-  // ================= CREATE =================
+  // ================= CREATE BOOKING =================
   async create(userId: number, data: any) {
-    const user = await this.userRepo.findOne({
-      where: { id: userId },
-    });
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
 
     const service = await this.serviceRepo.findOne({
       where: { id: data.serviceId },
     });
+    if (!service) throw new NotFoundException('Service not found');
 
     const vendor = await this.vendorRepo.findOne({
       where: { id: data.vendorId },
       relations: ['services'],
     });
+    if (!vendor) throw new NotFoundException('Vendor not found');
 
-    if (!user || !service || !vendor) {
-      throw new NotFoundException('User / Service / Vendor not found');
-    }
-
-    // ✅ Check vendor provides this service
-    const vendorHasService = vendor.services.some(
+    const vendorHasService = vendor.services?.some(
       (s) => s.id === service.id,
     );
 
     if (!vendorHasService) {
-      throw new NotFoundException(
+      throw new BadRequestException(
         'This vendor does not provide selected service',
       );
     }
@@ -64,7 +65,7 @@ export class BookingsService {
   }
 
   // ================= USER BOOKINGS =================
-  findByUser(userId: number) {
+  async findByUser(userId: number) {
     return this.bookingRepo.find({
       where: { user: { id: userId } },
       relations: ['service', 'vendor'],
@@ -86,13 +87,25 @@ export class BookingsService {
   }
 
   // ================= UPDATE STATUS =================
-  async updateStatus(id: number, status: BookingStatus) {
+  async updateStatus(
+    bookingId: number,
+    status: BookingStatus,
+    vendorUserId: number,
+  ) {
     const booking = await this.bookingRepo.findOne({
-      where: { id },
+      where: { id: bookingId },
+      relations: ['vendor', 'vendor.user'],
     });
 
     if (!booking) {
       throw new NotFoundException('Booking not found');
+    }
+
+    // 🔐 ONLY vendor owner can update
+    if (booking.vendor.user.id !== vendorUserId) {
+      throw new ForbiddenException(
+        'You are not allowed to update this booking',
+      );
     }
 
     booking.status = status;

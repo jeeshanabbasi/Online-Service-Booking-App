@@ -6,7 +6,9 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Service } from '../services/service.entity';
-
+import {  OneToOne, JoinColumn } from 'typeorm';
+import { Booking } from '../bookings/booking.entity';
+import { User } from '../users/user.entity';
 @Entity('vendors')
 export class Vendor {
   @PrimaryGeneratedColumn()
@@ -32,4 +34,11 @@ export class Vendor {
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @OneToOne(() => User, { eager: true })
+@JoinColumn()
+user: User;
+
+@OneToMany(() => Booking, (booking) => booking.vendor)
+bookings: Booking[];
 }

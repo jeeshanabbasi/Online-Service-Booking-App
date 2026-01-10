@@ -7,6 +7,8 @@ import {
 } from 'typeorm';
 import { Vendor } from '../vendors/vendor.entity';
 import { Category } from '../categories/category.entity';
+import { OneToMany } from 'typeorm';
+import { Booking } from '../bookings/booking.entity';
 
 @Entity('services')
 export class Service {
@@ -40,4 +42,8 @@ export class Service {
 
   @CreateDateColumn()
   createdAt: Date;
+
+@OneToMany(() => Booking, (booking) => booking.service)
+bookings: Booking[];
 }
+
