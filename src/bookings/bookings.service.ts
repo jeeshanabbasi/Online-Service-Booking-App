@@ -28,41 +28,41 @@ export class BookingsService {
   ) {}
 
   // ================= CREATE BOOKING =================
-  async create(userId: number, data: any) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) throw new NotFoundException('User not found');
-
-    const service = await this.serviceRepo.findOne({
-      where: { id: data.serviceId },
-    });
-    if (!service) throw new NotFoundException('Service not found');
-
-    const vendor = await this.vendorRepo.findOne({
-      where: { id: data.vendorId },
-      relations: ['services'],
-    });
-    if (!vendor) throw new NotFoundException('Vendor not found');
-
-    const vendorHasService = vendor.services?.some(
-      (s) => s.id === service.id,
-    );
-
-    if (!vendorHasService) {
-      throw new BadRequestException(
-        'This vendor does not provide selected service',
-      );
-    }
-
-    const booking = this.bookingRepo.create({
-      bookingDate: new Date(data.bookingDate),
-      user,
-      service,
-      vendor,
-      status: BookingStatus.PENDING,
-    });
-
-    return this.bookingRepo.save(booking);
+ async create(userId: number, data: any) {
+  // 1️⃣ User check
+  const user = await this.userRepo.findOne({
+    where: { id: userId },
+  });
+  if (!user) {
+    throw new NotFoundException('User not found');
   }
+
+  // 2️⃣ Service check (WITH vendor)
+  const service = await this.serviceRepo.findOne({
+    where: { id: data.serviceId },
+    relations: ['vendor'],
+  });
+  if (!service) {
+    throw new NotFoundException('Service not found');
+  }
+
+  // 3️⃣ Vendor auto resolve from service
+  const vendor = service.vendor;
+  if (!vendor) {
+    throw new NotFoundException('Vendor not found for this service');
+  }
+
+  // 4️⃣ Create booking
+  const booking = this.bookingRepo.create({
+    bookingDate: new Date(data.bookingDate),
+    user,
+    service,
+    vendor,
+    status: BookingStatus.PENDING,
+  });
+
+  return this.bookingRepo.save(booking);
+}
 
   // ================= USER BOOKINGS =================
   async findByUser(userId: number) {

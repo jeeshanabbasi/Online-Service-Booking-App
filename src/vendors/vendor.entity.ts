@@ -4,21 +4,21 @@ import {
   Column,
   OneToMany,
   CreateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Service } from '../services/service.entity';
-import {  OneToOne, JoinColumn } from 'typeorm';
 import { Booking } from '../bookings/booking.entity';
 import { User } from '../users/user.entity';
+
 @Entity('vendors')
 export class Vendor {
   @PrimaryGeneratedColumn()
   id: number;
 
-  // ✅ Vendor ka naam
   @Column()
   name: string;
 
-  // ✅ Vendor email
   @Column({ nullable: true, unique: true })
   email: string;
 
@@ -28,17 +28,16 @@ export class Vendor {
   @Column({ nullable: true })
   description: string;
 
-  // ✅ ONE vendor → MANY services
-  @OneToMany(() => Service, service => service.vendor)
+  @OneToMany(() => Service, (service) => service.vendor)
   services: Service[];
+
+  @OneToOne(() => User)
+  @JoinColumn({ name: 'userId' })
+  user: User;
+
+  @OneToMany(() => Booking, (booking) => booking.vendor)
+  bookings: Booking[];
 
   @CreateDateColumn()
   createdAt: Date;
-
-  @OneToOne(() => User, { eager: true })
-@JoinColumn()
-user: User;
-
-@OneToMany(() => Booking, (booking) => booking.vendor)
-bookings: Booking[];
 }
