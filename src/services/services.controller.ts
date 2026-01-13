@@ -6,46 +6,66 @@ import {
   Delete,
   Param,
   Body,
+  Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ServicesService } from './services.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+
 
 @Controller('services')
 export class ServicesController {
   constructor(private servicesService: ServicesService) {}
 
-  // ✅ CREATE SERVICE
+  // ================= CREATE SERVICE (VENDOR ONLY) =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('VENDOR')
   @Post()
-  create(@Body() body: any) {
-    return this.servicesService.create(body);
+  create(@Req() req, @Body() body: any) {
+    return this.servicesService.create(req.user.userId, body);
   }
 
-  // ✅ GET ALL SERVICES
+  // ================= GET ALL SERVICES (PUBLIC) =================
   @Get()
   findAll() {
     return this.servicesService.findAll();
   }
 
-  // ✅ 🔥 GET SERVICE BY ID
+  // ================= GET SERVICE BY ID =================
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.servicesService.findOne(Number(id));
+    return this.servicesService.findOne(+id);
   }
 
-  // ✅ GET SERVICES BY CATEGORY
+  // ================= GET BY CATEGORY =================
   @Get('category/:id')
   findByCategory(@Param('id') id: string) {
-    return this.servicesService.findByCategory(Number(id));
+    return this.servicesService.findByCategory(+id);
   }
 
-  // ✅ UPDATE SERVICE
+  // ================= 🔥 VENDOR DASHBOARD: MY SERVICES =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('VENDOR')
+  @Get('vendor/me')
+  findMyServices(@Req() req) {
+    return this.servicesService.findByVendorUserId(req.user.userId);
+  }
+
+  // ================= UPDATE SERVICE (VENDOR ONLY) =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('VENDOR')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: any) {
-    return this.servicesService.update(Number(id), body);
+  update(@Req() req, @Param('id') id: string, @Body() body: any) {
+    return this.servicesService.update(+id, req.user.userId, body);
   }
 
-  // ✅ DELETE SERVICE
+  // ================= DELETE SERVICE (VENDOR ONLY) =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('VENDOR')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.servicesService.remove(Number(id));
+  remove(@Req() req, @Param('id') id: string) {
+    return this.servicesService.remove(+id, req.user.userId);
   }
 }

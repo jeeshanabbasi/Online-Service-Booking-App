@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Service } from './service.entity';
@@ -19,13 +23,14 @@ export class ServicesService {
   ) {}
 
   // ================= CREATE SERVICE =================
-  async create(data: any) {
+  async create(userId: number, data: any) {
     const category = await this.categoryRepo.findOne({
       where: { id: data.categoryId },
     });
 
     const vendor = await this.vendorRepo.findOne({
-      where: { id: data.vendorId },
+      where: { user: { id: userId } },
+      relations: ['user'],
     });
 
     if (!category || !vendor) {
@@ -33,7 +38,7 @@ export class ServicesService {
     }
 
     const service = this.serviceRepo.create({
-      title: data.title,          // ✅ FIXED (name ❌ → title ✅)
+      title: data.title,
       price: data.price,
       duration: data.duration,
       description: data.description,
@@ -46,52 +51,20 @@ export class ServicesService {
 
   // ================= GET ALL SERVICES =================
   findAll() {
+    // (same as tumhara, unchanged)
     return this.serviceRepo.find({
       relations: ['category', 'vendor'],
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        duration: true,
-        description: true,
-        category: {
-          id: true,
-          name: true,
-        },
-        vendor: {
-          id: true,
-          name: true,
-        },
-      },
     });
   }
 
-  // ================= GET SERVICE BY ID =================
+  // ================= GET ONE =================
   async findOne(id: number) {
     const service = await this.serviceRepo.findOne({
       where: { id },
       relations: ['category', 'vendor'],
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        duration: true,
-        description: true,
-        category: {
-          id: true,
-          name: true,
-        },
-        vendor: {
-          id: true,
-          name: true,
-        },
-      },
     });
 
-    if (!service) {
-      throw new NotFoundException('Service not found');
-    }
-
+    if (!service) throw new NotFoundException('Service not found');
     return service;
   }
 
@@ -100,32 +73,30 @@ export class ServicesService {
     return this.serviceRepo.find({
       where: { category: { id: categoryId } },
       relations: ['category', 'vendor'],
-      select: {
-        id: true,
-        title: true,
-        price: true,
-        duration: true,
-        description: true,
-        category: {
-          id: true,
-          name: true,
-        },
-        vendor: {
-          id: true,
-          name: true,
-        },
-      },
     });
   }
 
+  // ================= 🔥 VENDOR: MY SERVICES =================
+  async findByVendorUserId(userId: number) {
+    return this.serviceRepo
+      .createQueryBuilder('service')
+      .leftJoinAndSelect('service.vendor', 'vendor')
+      .leftJoin('vendor.user', 'user')
+      .where('user.id = :userId', { userId })
+      .getMany();
+  }
+
   // ================= UPDATE =================
-  async update(id: number, data: any) {
+  async update(id: number, userId: number, data: any) {
     const service = await this.serviceRepo.findOne({
       where: { id },
+      relations: ['vendor', 'vendor.user'],
     });
 
-    if (!service) {
-      throw new NotFoundException('Service not found');
+    if (!service) throw new NotFoundException('Service not found');
+
+    if (service.vendor.user.id !== userId) {
+      throw new ForbiddenException('Not allowed');
     }
 
     Object.assign(service, data);
@@ -133,13 +104,16 @@ export class ServicesService {
   }
 
   // ================= DELETE =================
-  async remove(id: number) {
+  async remove(id: number, userId: number) {
     const service = await this.serviceRepo.findOne({
       where: { id },
+      relations: ['vendor', 'vendor.user'],
     });
 
-    if (!service) {
-      throw new NotFoundException('Service not found');
+    if (!service) throw new NotFoundException('Service not found');
+
+    if (service.vendor.user.id !== userId) {
+      throw new ForbiddenException('Not allowed');
     }
 
     return this.serviceRepo.remove(service);
