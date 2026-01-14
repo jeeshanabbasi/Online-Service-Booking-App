@@ -27,7 +27,21 @@ export class ServicesController {
     return this.servicesService.create(req.user.userId, body);
   }
 
-  // ================= GET ALL SERVICES (PUBLIC) =================
+  // ================= 🔥 VENDOR: MY SERVICES =================
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('VENDOR')
+  @Get('vendor/me')
+  findMyServices(@Req() req) {
+    return this.servicesService.findByVendorUserId(req.user.userId);
+  }
+
+  // ================= GET BY CATEGORY =================
+  @Get('category/:id')
+  findByCategory(@Param('id') id: string) {
+    return this.servicesService.findByCategory(+id);
+  }
+
+  // ================= GET ALL SERVICES =================
   @Get()
   findAll() {
     return this.servicesService.findAll();
@@ -37,20 +51,6 @@ export class ServicesController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.servicesService.findOne(+id);
-  }
-
-  // ================= GET BY CATEGORY =================
-  @Get('category/:id')
-  findByCategory(@Param('id') id: string) {
-    return this.servicesService.findByCategory(+id);
-  }
-
-  // ================= 🔥 VENDOR DASHBOARD: MY SERVICES =================
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('VENDOR')
-  @Get('vendor/me')
-  findMyServices(@Req() req) {
-    return this.servicesService.findByVendorUserId(req.user.userId);
   }
 
   // ================= UPDATE SERVICE (VENDOR ONLY) =================

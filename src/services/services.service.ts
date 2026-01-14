@@ -22,38 +22,46 @@ export class ServicesService {
     private vendorRepo: Repository<Vendor>,
   ) {}
 
-  // ================= CREATE SERVICE =================
+  // ================= CREATE =================
   async create(userId: number, data: any) {
-    const category = await this.categoryRepo.findOne({
-      where: { id: data.categoryId },
-    });
-
     const vendor = await this.vendorRepo.findOne({
       where: { user: { id: userId } },
       relations: ['user'],
     });
 
-    if (!category || !vendor) {
-      throw new NotFoundException('Category or Vendor not found');
-    }
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    const category = await this.categoryRepo.findOne({
+      where: { id: data.categoryId },
+    });
+
+    if (!category) throw new NotFoundException('Category not found');
 
     const service = this.serviceRepo.create({
       title: data.title,
       price: data.price,
       duration: data.duration,
       description: data.description,
-      category,
       vendor,
+      category,
     });
 
     return this.serviceRepo.save(service);
   }
 
-  // ================= GET ALL SERVICES =================
+  // ================= GET ALL =================
   findAll() {
-    // (same as tumhara, unchanged)
     return this.serviceRepo.find({
       relations: ['category', 'vendor'],
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        duration: true,
+        description: true,
+        category: { id: true, name: true },
+        vendor: { id: true, name: true },
+      },
     });
   }
 
@@ -73,6 +81,15 @@ export class ServicesService {
     return this.serviceRepo.find({
       where: { category: { id: categoryId } },
       relations: ['category', 'vendor'],
+      select: {
+        id: true,
+        title: true,
+        price: true,
+        duration: true,
+        description: true,
+        category: { id: true, name: true },
+        vendor: { id: true, name: true },
+      },
     });
   }
 

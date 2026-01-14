@@ -1,6 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-import { OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Booking } from '../bookings/booking.entity';
+import { Vendor } from '../vendors/vendor.entity';
+
 export enum Role {
   USER = 'USER',
   VENDOR = 'VENDOR',
@@ -18,7 +25,8 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({select:false})
+  // 🔐 Password hidden by default
+  @Column({ select: false })
   password: string;
 
   @Column({
@@ -28,6 +36,11 @@ export class User {
   })
   role: Role;
 
+  // 🧾 USER → BOOKINGS
   @OneToMany(() => Booking, (booking) => booking.user)
-bookings: Booking[];
+  bookings: Booking[];
+
+  // 🏪 USER → VENDOR (only if role = VENDOR)
+  @OneToOne(() => Vendor, (vendor) => vendor.user)
+  vendor: Vendor;
 }
