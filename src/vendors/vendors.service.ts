@@ -21,6 +21,7 @@ export class VendorsService {
       email: data.email,
       phone: data.phone,
       description: data.description,
+      user: {id: data.userId},
     });
 
     return this.vendorRepo.save(vendor);
