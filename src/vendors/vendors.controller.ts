@@ -21,10 +21,7 @@ export class VendorsController {
   @Roles('VENDOR')
   @Post()
   create(@Req() req, @Body() body: any) {
-    return this.vendorsService.create({
-      ...body,
-      userId: req.user.userId, // 🔥 MOST IMPORTANT FIX
-    });
+    return this.vendorsService.create(req.user.userId, body);
   }
 
   // ================= GET ALL VENDORS =================
@@ -33,15 +30,20 @@ export class VendorsController {
     return this.vendorsService.findAll();
   }
 
-  // ================= LINK SERVICES TO VENDOR =================
+  // ================= ADD SERVICES =================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('VENDOR')
   @Post(':vendorId/services')
   addServices(
+    @Req() req,
     @Param('vendorId') vendorId: string,
     @Body('serviceIds') serviceIds: number[],
   ) {
-    return this.vendorsService.addServices(+vendorId, serviceIds);
+    return this.vendorsService.addServices(
+      req.user.userId,
+      +vendorId,
+      serviceIds,
+    );
   }
 
   // ================= GET VENDORS BY SERVICE =================

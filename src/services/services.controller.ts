@@ -30,9 +30,9 @@ export class ServicesController {
   // ================= 🔥 VENDOR: MY SERVICES =================
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('VENDOR')
-  @Get('vendor/me')
-  findMyServices(@Req() req) {
-    return this.servicesService.findByVendorUserId(req.user.userId);
+  @Get('vendor/me/:userId')
+  findMyServices(@Param('userId') userId) {
+    return this.servicesService.findByVendorUserId(userId);
   }
 
   // ================= GET BY CATEGORY =================

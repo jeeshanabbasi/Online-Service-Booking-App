@@ -1,8 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Vendor } from './vendor.entity';
 import { Service } from '../services/service.entity';
+import { User } from '../users/user.entity';
 
 @Injectable()
 export class VendorsService {
@@ -12,16 +18,42 @@ export class VendorsService {
 
     @InjectRepository(Service)
     private serviceRepo: Repository<Service>,
+
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
   ) {}
 
-  // ================= CREATE =================
-  async create(data: any) {
+  // ================= CREATE VENDOR =================
+  async create(userId: number, data: any) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // 🔥 PREVENT DUPLICATE VENDOR
+    const existingVendor = await this.vendorRepo.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (existingVendor) {
+      throw new ConflictException('Vendor already exists for this user');
+    }
+
+    // 🔥 PREVENT EMAIL DUPLICATE
+    if (data.email) {
+      const emailExists = await this.vendorRepo.findOne({
+        where: { email: data.email },
+      });
+
+      if (emailExists) {
+        throw new ConflictException('Vendor email already exists');
+      }
+    }
+
     const vendor = this.vendorRepo.create({
       name: data.name,
       email: data.email,
       phone: data.phone,
       description: data.description,
-      user: {id: data.userId},
+      user,
     });
 
     return this.vendorRepo.save(vendor);
@@ -45,15 +77,18 @@ export class VendorsService {
     });
   }
 
-  // ================= ADD SERVICES TO VENDOR =================
-  async addServices(vendorId: number, serviceIds: number[]) {
+  // ================= ADD SERVICES (OWNER ONLY) =================
+  async addServices(userId: number, vendorId: number, serviceIds: number[]) {
     const vendor = await this.vendorRepo.findOne({
       where: { id: vendorId },
-      relations: ['services'],
+      relations: ['services', 'user'],
     });
 
-    if (!vendor) {
-      throw new NotFoundException('Vendor not found');
+    if (!vendor) throw new NotFoundException('Vendor not found');
+
+    // 🔐 OWNER CHECK
+    if (vendor.user.id !== userId) {
+      throw new ForbiddenException('You cannot modify this vendor');
     }
 
     const services = await this.serviceRepo.find({
@@ -68,7 +103,7 @@ export class VendorsService {
     return this.vendorRepo.save(vendor);
   }
 
-  // ================= FIND VENDORS BY SERVICE =================
+  // ================= GET VENDORS BY SERVICE =================
   async findByService(serviceId: number) {
     return this.vendorRepo
       .createQueryBuilder('vendor')
